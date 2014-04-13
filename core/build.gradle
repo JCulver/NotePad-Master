@@ -1,0 +1,105 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:0.9.+'
+        // the latest version of the android-apt plugin for annotations
+        classpath 'com.neenbedankt.gradle.plugins:android-apt:1.2'
+    }
+}
+
+apply plugin: 'android-library'
+/*
+ * Copyright (c) 2014 Joshua Culver.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// For annotations
+apply plugin: 'android-apt'
+def AAVersion = '3.0.1'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+configurations {
+    apt
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: '*.jar')
+    compile 'com.android.support:support-v4:19.0.1+'
+    compile 'com.google.android.gms:play-services:4.2.42+'
+    compile 'joda-time:joda-time:2.3'
+    // FilePicker
+    compile 'com.jculverapps:filepicker:1.1.3+'
+    compile project(':lib')
+    compile project(':external:ActionBar-PullToRefresh')
+    compile project(':external:datetimepicker')
+    compile project(':external:drag-sort-listview')
+    compile project(':external:ShowcaseView')
+    // annotations
+    apt "org.androidannotations:androidannotations:$AAVersion"
+    compile "org.androidannotations:androidannotations-api:$AAVersion"
+    // Dropbox
+    compile fileTree(dir: "$buildDir/native-libs", include: "*.jar")
+}
+
+android {
+    compileSdkVersion 19
+    buildToolsVersion "19.0.3"
+
+    defaultConfig {
+        packageName "com.nononsenseapps.notepad.core"
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            resources.srcDirs = ['src']
+            aidl.srcDirs = ['src']
+            renderscript.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+        }
+
+        debug.setRoot('build-types/debug')
+        release.setRoot('build-types/release')
+    }
+}
+
+
+apt {
+    arguments {
+        resourcePackageName android.defaultConfig.packageName
+        androidManifestFile variant.processResources.manifestFile
+
+    }
+}
+
+// Dropbox
+task nativeLibsToJar(type: Zip) {
+    destinationDir file("$buildDir/native-libs")
+    baseName 'native-libs'
+    extension 'jar'
+    from fileTree(dir: 'libs', include: '**/*.so')
+    into 'lib/'
+}
+
+tasks.withType(Compile) {
+    compileTask -> compileTask.dependsOn(nativeLibsToJar)
+}
